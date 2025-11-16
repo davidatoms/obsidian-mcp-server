@@ -196,6 +196,8 @@ export class NavigationTools {
 
     if (input.format === 'json') {
       return JSON.stringify(graphData, null, 2);
+    } else if (input.format === 'ascii') {
+      return this.generateAsciiGraph(graphData);
     } else {
       return this.generateMermaidGraph(graphData);
     }
@@ -346,5 +348,181 @@ export class NavigationTools {
     lines.push(`**Graph Stats:** ${graphData.nodes.length} notes, ${graphData.edges.length} links`);
 
     return lines.join('\n');
+  }
+
+  /**
+   * Generate ASCII terminal graph visualization
+   */
+  private generateAsciiGraph(graphData: { nodes: any[]; edges: any[] }): string {
+    const width = 120;
+    const height = 40;
+    
+    // Simple force-directed layout simulation
+    interface NodePosition {
+      id: string;
+      label: string;
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      connections: number;
+    }
+
+    const positions: NodePosition[] = graphData.nodes.map((node, i) => {
+      const angle = (2 * Math.PI * i) / graphData.nodes.length;
+      const radius = Math.min(width, height) * 0.3;
+      return {
+        id: node.id,
+        label: node.label.slice(0, 15), // Truncate long names
+        x: width / 2 + radius * Math.cos(angle),
+        y: height / 2 + radius * Math.sin(angle),
+        vx: 0,
+        vy: 0,
+        connections: node.linkCount + node.backlinks,
+      };
+    });
+
+    // Run simple force simulation
+    for (let iter = 0; iter < 50; iter++) {
+      // Repulsion between all nodes
+      for (let i = 0; i < positions.length; i++) {
+        for (let j = i + 1; j < positions.length; j++) {
+          const dx = positions[j].x - positions[i].x;
+          const dy = positions[j].y - positions[i].y;
+          const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+          const force = 100 / (dist * dist);
+          
+          positions[i].vx -= (dx / dist) * force;
+          positions[i].vy -= (dy / dist) * force;
+          positions[j].vx += (dx / dist) * force;
+          positions[j].vy += (dy / dist) * force;
+        }
+      }
+
+      // Attraction along edges
+      for (const edge of graphData.edges) {
+        const source = positions.find(p => p.id === edge.source);
+        const target = positions.find(p => p.id === edge.target);
+        if (source && target) {
+          const dx = target.x - source.x;
+          const dy = target.y - source.y;
+          const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+          const force = dist * 0.01;
+          
+          source.vx += (dx / dist) * force;
+          source.vy += (dy / dist) * force;
+          target.vx -= (dx / dist) * force;
+          target.vy -= (dy / dist) * force;
+        }
+      }
+
+      // Update positions with damping
+      for (const pos of positions) {
+        pos.x += pos.vx;
+        pos.y += pos.vy;
+        pos.vx *= 0.8;
+        pos.vy *= 0.8;
+        
+        // Keep within bounds
+        pos.x = Math.max(5, Math.min(width - 5, pos.x));
+        pos.y = Math.max(2, Math.min(height - 2, pos.y));
+      }
+    }
+
+    // Create canvas
+    const canvas: string[][] = [];
+    for (let y = 0; y < height; y++) {
+      canvas[y] = [];
+      for (let x = 0; x < width; x++) {
+        canvas[y][x] = ' ';
+      }
+    }
+
+    // Draw edges first
+    for (const edge of graphData.edges) {
+      const source = positions.find(p => p.id === edge.source);
+      const target = positions.find(p => p.id === edge.target);
+      if (source && target) {
+        this.drawLine(canvas, source.x, source.y, target.x, target.y, '·');
+      }
+    }
+
+    // Draw nodes
+    for (const pos of positions) {
+      const x = Math.round(pos.x);
+      const y = Math.round(pos.y);
+      
+      if (y >= 0 && y < height && x >= 0 && x < width) {
+        // Draw node symbol based on connections
+        const symbol = pos.connections >= 5 ? '◉' : pos.connections > 0 ? '●' : '○';
+        canvas[y][x] = symbol;
+        
+        // Try to place label near node
+        const labelX = Math.min(width - pos.label.length - 1, x + 2);
+        if (labelX >= 0 && y < height) {
+          for (let i = 0; i < pos.label.length && labelX + i < width; i++) {
+            if (canvas[y][labelX + i] === ' ' || canvas[y][labelX + i] === '·') {
+              canvas[y][labelX + i] = pos.label[i];
+            }
+          }
+        }
+      }
+    }
+
+    // Convert canvas to string
+    const lines: string[] = [];
+    lines.push('┌' + '─'.repeat(width - 2) + '┐');
+    for (const row of canvas) {
+      lines.push('│' + row.join('') + '│');
+    }
+    lines.push('└' + '─'.repeat(width - 2) + '┘');
+    lines.push('');
+    lines.push('Legend: ◉ Hub (5+ connections)  ● Normal (1-4)  ○ Orphan (0)  · Connection');
+    lines.push(`Nodes: ${graphData.nodes.length}  Edges: ${graphData.edges.length}`);
+
+    return lines.join('\n');
+  }
+
+  /**
+   * Draw a line using Bresenham's algorithm
+   */
+  private drawLine(
+    canvas: string[][],
+    x0: number,
+    y0: number,
+    x1: number,
+    y1: number,
+    char: string
+  ): void {
+    x0 = Math.round(x0);
+    y0 = Math.round(y0);
+    x1 = Math.round(x1);
+    y1 = Math.round(y1);
+
+    const dx = Math.abs(x1 - x0);
+    const dy = Math.abs(y1 - y0);
+    const sx = x0 < x1 ? 1 : -1;
+    const sy = y0 < y1 ? 1 : -1;
+    let err = dx - dy;
+
+    while (true) {
+      if (y0 >= 0 && y0 < canvas.length && x0 >= 0 && x0 < canvas[0].length) {
+        if (canvas[y0][x0] === ' ') {
+          canvas[y0][x0] = char;
+        }
+      }
+
+      if (x0 === x1 && y0 === y1) break;
+
+      const e2 = 2 * err;
+      if (e2 > -dy) {
+        err -= dy;
+        x0 += sx;
+      }
+      if (e2 < dx) {
+        err += dx;
+        y0 += sy;
+      }
+    }
   }
 }
