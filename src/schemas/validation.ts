@@ -116,11 +116,7 @@ export const GetVaultStatsSchema = z.object({
 }).strict();
 
 export const GetGraphViewSchema = z.object({
-  folder: z.string().optional().describe('Limit graph to notes in specific folder'),
-  maxDepth: z.number().int().positive().max(5).default(2).describe('Maximum depth of connections to show'),
-  maxNotes: z.number().int().positive().max(100).default(50).describe('Maximum number of notes to include'),
-  centralNote: z.string().optional().describe('Center the graph on a specific note path'),
-  format: z.enum(['ascii', 'mermaid', 'json', 'html']).default('ascii').describe('Output format: ascii for terminal, mermaid for diagram, json for data, html for interactive D3.js'),
+  centralNote: z.string().optional().describe('Open graph view centered on a specific note path'),
 }).strict();
 
 // Type inference helpers

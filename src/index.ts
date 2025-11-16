@@ -187,6 +187,11 @@ async function main() {
         description: 'Get comprehensive statistics about the vault including total notes, tags, links, folders, average note length, and orphan count. Useful for understanding vault size and health.',
         inputSchema: zodToJsonSchema(GetVaultStatsSchema) as any,
       },
+      {
+        name: 'obsidian_get_graph_view',
+        description: 'Open Obsidian\'s native graph view to visualize your knowledge graph. Optionally center the view on a specific note. Uses Obsidian\'s built-in interactive graph with all its features (zoom, drag, filters, etc.).',
+        inputSchema: zodToJsonSchema(GetGraphViewSchema) as any,
+      },
     ];
 
     // Register list tools handler
