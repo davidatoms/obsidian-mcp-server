@@ -176,12 +176,18 @@ export class NavigationTools {
     const { promisify } = await import('util');
     const execAsync = promisify(exec);
 
-    let uri = 'obsidian://graph';
+    // Get vault path and name
+    const vaultPath = this.vault['vaultPath'];
+    const path = await import('path');
+    const vaultName = path.basename(vaultPath);
+    
+    // Use vault parameter to ensure we open the correct vault
+    let uri = `obsidian://open?vault=${encodeURIComponent(vaultName)}`;
     
     if (input.centralNote) {
-      // Open graph view focused on a specific note
+      // Open specific note in the vault
       const notePath = input.centralNote.replace(/\.md$/, '');
-      uri = `obsidian://open?path=${encodeURIComponent(notePath)}`;
+      uri = `obsidian://open?vault=${encodeURIComponent(vaultName)}&file=${encodeURIComponent(notePath)}`;
     }
 
     try {
