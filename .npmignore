@@ -1,0 +1,43 @@
+# Source files
+src/
+*.test.ts
+*.spec.ts
+
+# Configuration files
+tsconfig.json
+vitest.config.ts
+.eslintrc.json
+.prettierrc.json
+.prettierignore
+
+# GitHub files
+.github/
+.git/
+.gitignore
+
+# Documentation (keep README and LICENSE)
+CONTRIBUTING.md
+CODE_OF_CONDUCT.md
+CHANGELOG.md
+*.md
+!README.md
+!LICENSE
+
+# Build artifacts
+coverage/
+node_modules/
+
+# Development files
+.vscode/
+.idea/
+*.log
+npm-debug.log*
+.DS_Store
+
+# Project docs
+ENHANCEMENTS.md
+OBSIDIAN_API_ANALYSIS.md
+PROJECT_SUMMARY.md
+QUALITY_CHECKLIST.md
+QUICKSTART.md
+INITIALIZATION.md
