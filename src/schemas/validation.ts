@@ -115,6 +115,14 @@ export const GetVaultStatsSchema = z.object({
   format: ResponseFormatSchema,
 }).strict();
 
+export const GetGraphViewSchema = z.object({
+  folder: z.string().optional().describe('Limit graph to notes in specific folder'),
+  maxDepth: z.number().int().positive().max(5).default(2).describe('Maximum depth of connections to show'),
+  maxNotes: z.number().int().positive().max(100).default(50).describe('Maximum number of notes to include'),
+  centralNote: z.string().optional().describe('Center the graph on a specific note path'),
+  format: z.enum(['mermaid', 'json']).default('mermaid').describe('Output format'),
+}).strict();
+
 // Type inference helpers
 export type GetNoteInput = z.infer<typeof GetNoteSchema>;
 export type CreateNoteInput = z.infer<typeof CreateNoteSchema>;
@@ -132,3 +140,4 @@ export type GetUnlinkedReferencesInput = z.infer<typeof GetUnlinkedReferencesSch
 export type ListFoldersInput = z.infer<typeof ListFoldersSchema>;
 export type GetDailyNoteInput = z.infer<typeof GetDailyNoteSchema>;
 export type GetVaultStatsInput = z.infer<typeof GetVaultStatsSchema>;
+export type GetGraphViewInput = z.infer<typeof GetGraphViewSchema>;

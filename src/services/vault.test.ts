@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { VaultService } from './vault.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';

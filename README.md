@@ -317,6 +317,33 @@ Get vault statistics.
 }
 ```
 
+#### `obsidian_get_graph_view`
+Generate an Obsidian-style graph visualization showing note connections.
+
+```json
+{
+  "folder": "Research",
+  "maxDepth": 2,
+  "maxNotes": 50,
+  "centralNote": "Concepts/Main Idea.md",
+  "format": "mermaid"
+}
+```
+
+**Output**: Creates a Mermaid diagram with:
+- 🔵 **Blue nodes** (Hubs): Notes with 5+ connections
+- 🟢 **Green nodes** (Normal): Notes with 1-4 connections  
+- 🟠 **Orange nodes** (Orphans): Notes with no connections
+- **Bidirectional arrows** (`<-->`) for mutual links
+- **Directional arrows** (`-->`) for one-way links
+
+**Parameters**:
+- `folder`: Limit graph to notes in a specific folder
+- `maxDepth`: How many connection levels to traverse (1-5, default: 2)
+- `maxNotes`: Maximum nodes to show (1-100, default: 50)
+- `centralNote`: Center the graph on a specific note
+- `format`: `mermaid` for visualization or `json` for raw data
+
 ## Link Formats Supported
 
 The server understands multiple Obsidian link formats:

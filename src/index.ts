@@ -39,6 +39,7 @@ import {
   ListFoldersSchema,
   GetDailyNoteSchema,
   GetVaultStatsSchema,
+  GetGraphViewSchema,
 } from './schemas/validation.js';
 import { ERROR_MESSAGES } from './constants.js';
 
@@ -292,6 +293,12 @@ async function main() {
           case 'obsidian_get_vault_stats': {
             const input = GetVaultStatsSchema.parse(args);
             const result = await navigationTools.getVaultStats(input);
+            return { content: [{ type: 'text', text: result }] };
+          }
+
+          case 'obsidian_get_graph_view': {
+            const input = GetGraphViewSchema.parse(args);
+            const result = await navigationTools.getGraphView(input);
             return { content: [{ type: 'text', text: result }] };
           }
 
