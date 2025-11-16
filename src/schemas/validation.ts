@@ -120,7 +120,7 @@ export const GetGraphViewSchema = z.object({
   maxDepth: z.number().int().positive().max(5).default(2).describe('Maximum depth of connections to show'),
   maxNotes: z.number().int().positive().max(100).default(50).describe('Maximum number of notes to include'),
   centralNote: z.string().optional().describe('Center the graph on a specific note path'),
-  format: z.enum(['ascii', 'mermaid', 'json']).default('ascii').describe('Output format: ascii for terminal, mermaid for diagram, json for data'),
+  format: z.enum(['ascii', 'mermaid', 'json', 'html']).default('ascii').describe('Output format: ascii for terminal, mermaid for diagram, json for data, html for interactive D3.js'),
 }).strict();
 
 // Type inference helpers

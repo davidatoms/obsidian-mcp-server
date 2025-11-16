@@ -198,6 +198,8 @@ export class NavigationTools {
       return JSON.stringify(graphData, null, 2);
     } else if (input.format === 'ascii') {
       return this.generateAsciiGraph(graphData);
+    } else if (input.format === 'html') {
+      return this.generateD3Graph(graphData);
     } else {
       return this.generateMermaidGraph(graphData);
     }
@@ -524,5 +526,233 @@ export class NavigationTools {
         y0 += sy;
       }
     }
+  }
+
+  /**
+   * Generate interactive D3.js force-directed graph
+   */
+  private generateD3Graph(graphData: { nodes: any[]; edges: any[] }): string {
+    const graphJson = JSON.stringify({
+      nodes: graphData.nodes.map(n => ({
+        id: n.id,
+        label: n.label,
+        connections: n.linkCount + n.backlinks,
+      })),
+      links: graphData.edges.map(e => ({
+        source: e.source,
+        target: e.target,
+      })),
+    });
+
+    return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Obsidian Knowledge Graph</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #1e1e1e;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      overflow: hidden;
+    }
+    #graph {
+      width: 100vw;
+      height: 100vh;
+    }
+    .node {
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .node:hover {
+      stroke: #fff;
+      stroke-width: 3px;
+    }
+    .link {
+      stroke: #999;
+      stroke-opacity: 0.6;
+      stroke-width: 1.5px;
+    }
+    .label {
+      font-size: 12px;
+      fill: #fff;
+      pointer-events: none;
+      text-anchor: middle;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+    }
+    .controls {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: rgba(30, 30, 30, 0.9);
+      padding: 15px;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 14px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+    .controls h3 {
+      margin: 0 0 10px 0;
+      font-size: 16px;
+    }
+    .stats {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: rgba(30, 30, 30, 0.9);
+      padding: 15px;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div id="graph"></div>
+  <div class="controls">
+    <h3>Obsidian Knowledge Graph</h3>
+    <div>◉ Hub (5+ links) | ● Normal (1-4) | ○ Orphan (0)</div>
+  </div>
+  <div class="stats">
+    <div>Nodes: <span id="node-count"></span></div>
+    <div>Links: <span id="link-count"></span></div>
+  </div>
+
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script>
+    const data = ${graphJson};
+    
+    // Set up dimensions
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    // Create SVG
+    const svg = d3.select('#graph')
+      .append('svg')
+      .attr('width', width)
+      .attr('height', height);
+
+    // Create a group for zoom/pan
+    const g = svg.append('g');
+
+    // Add zoom behavior
+    const zoom = d3.zoom()
+      .scaleExtent([0.1, 10])
+      .on('zoom', (event) => {
+        g.attr('transform', event.transform);
+      });
+    
+    svg.call(zoom);
+
+    // Create force simulation
+    const simulation = d3.forceSimulation(data.nodes)
+      .force('link', d3.forceLink(data.links)
+        .id(d => d.id)
+        .distance(100))
+      .force('charge', d3.forceManyBody()
+        .strength(-300))
+      .force('center', d3.forceCenter(width / 2, height / 2))
+      .force('collision', d3.forceCollide().radius(30));
+
+    // Create links
+    const link = g.append('g')
+      .selectAll('line')
+      .data(data.links)
+      .join('line')
+      .attr('class', 'link');
+
+    // Create nodes
+    const node = g.append('g')
+      .selectAll('circle')
+      .data(data.nodes)
+      .join('circle')
+      .attr('class', 'node')
+      .attr('r', d => {
+        if (d.connections >= 5) return 12;
+        if (d.connections > 0) return 8;
+        return 6;
+      })
+      .attr('fill', d => {
+        if (d.connections >= 5) return '#5B9BD5';
+        if (d.connections > 0) return '#70AD47';
+        return '#FFA500';
+      })
+      .attr('stroke', '#fff')
+      .attr('stroke-width', 2)
+      .call(d3.drag()
+        .on('start', dragstarted)
+        .on('drag', dragged)
+        .on('end', dragended));
+
+    // Add labels
+    const label = g.append('g')
+      .selectAll('text')
+      .data(data.nodes)
+      .join('text')
+      .attr('class', 'label')
+      .attr('dy', -15)
+      .text(d => d.label);
+
+    // Add tooltips
+    node.append('title')
+      .text(d => \`\${d.label}\\nConnections: \${d.connections}\`);
+
+    // Update positions on each tick
+    simulation.on('tick', () => {
+      link
+        .attr('x1', d => d.source.x)
+        .attr('y1', d => d.source.y)
+        .attr('x2', d => d.target.x)
+        .attr('y2', d => d.target.y);
+
+      node
+        .attr('cx', d => d.x)
+        .attr('cy', d => d.y);
+
+      label
+        .attr('x', d => d.x)
+        .attr('y', d => d.y);
+    });
+
+    // Drag functions
+    function dragstarted(event, d) {
+      if (!event.active) simulation.alphaTarget(0.3).restart();
+      d.fx = d.x;
+      d.fy = d.y;
+    }
+
+    function dragged(event, d) {
+      d.fx = event.x;
+      d.fy = event.y;
+    }
+
+    function dragended(event, d) {
+      if (!event.active) simulation.alphaTarget(0);
+      d.fx = null;
+      d.fy = null;
+    }
+
+    // Update stats
+    document.getElementById('node-count').textContent = data.nodes.length;
+    document.getElementById('link-count').textContent = data.links.length;
+
+    // Initial zoom to fit
+    setTimeout(() => {
+      const bounds = g.node().getBBox();
+      const fullWidth = bounds.width;
+      const fullHeight = bounds.height;
+      const midX = bounds.x + fullWidth / 2;
+      const midY = bounds.y + fullHeight / 2;
+      const scale = 0.8 / Math.max(fullWidth / width, fullHeight / height);
+      const translate = [width / 2 - scale * midX, height / 2 - scale * midY];
+      
+      svg.transition()
+        .duration(750)
+        .call(zoom.transform, d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale));
+    }, 100);
+  </script>
+</body>
+</html>`;
   }
 }
